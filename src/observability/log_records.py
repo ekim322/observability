@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import traceback
 from collections.abc import Mapping
+from itertools import islice
 
 from .correlation import current_observability_context, current_trace_ids
 
@@ -47,7 +48,7 @@ def safe_value(key: str, value: object, depth: int = 0) -> object:
     if isinstance(value, Mapping):
         return {
             str(field_name)[:100]: safe_value(str(field_name), field_value, depth + 1)
-            for field_name, field_value in list(value.items())[:30]
+            for field_name, field_value in islice(value.items(), 30)
         }
     if isinstance(value, (list, tuple)):
         return [safe_value(key, item, depth + 1) for item in value[:30]]

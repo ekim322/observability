@@ -62,9 +62,9 @@ and teardown. This library supplies instrumentation and queries over saved logs.
 
 ## Reliability and verification limits
 
-- ASGI middleware has no dedicated tests. Its streaming, disconnect,
-  callback-failure, and route-policy behavior requires focused verification when
-  changing the integration.
+- ASGI tests cover failed enrichment during streaming success, application error
+  and cancellation. Disconnect and quiet-route policy behavior still require
+  focused verification when changing the integration.
 - Intercepted exporter tests verify protobuf encoding and HTTP paths. Live
   ingestion, retention, and retrieval depend on the consumer's telemetry stack
   and require separate integration verification.

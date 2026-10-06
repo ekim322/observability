@@ -109,6 +109,11 @@ completion log and span after handling. Use established application state; those
 fields do not automatically attach to logs emitted earlier in the handler. IDs are
 correlation hints, not authorization. Route templates, method, status, and outcome
 are metric dimensions; avoid dynamic route templates.
+If this callback raises an ordinary exception, middleware emits
+`http.request_fields.failed` with its type and omits the optional fields.
+The application's response, exception or cancellation remains authoritative;
+completion logs, spans and metrics still describe that outcome. Exception text
+is omitted from the diagnostic.
 
 ## Investigate saved logs
 

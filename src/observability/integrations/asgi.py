@@ -44,7 +44,8 @@ class HTTPObservabilityMiddleware:
     request_fields runs after handling, when route and application state are
     available. Return only safe fields: they are added directly to the span
     and completion log, and do not attach to earlier handler logs. Callback
-    failures propagate and prevent the remaining completion telemetry.
+    failures emit a diagnostic and omit those fields while preserving the
+    application's result, exception, or cancellation and completion telemetry.
     """
 
     def __init__(
@@ -137,9 +138,7 @@ class HTTPObservabilityMiddleware:
                     'http.route': route,
                     'http.response.status_code': status_code,
                 }
-                request_fields = (
-                    self.request_fields(scope) if self.request_fields else {}
-                )
+                request_fields = self._request_fields_for(scope)
                 span.update_name(f'{method} {route}')
                 span.set_attributes(
                     {
@@ -179,3 +178,20 @@ class HTTPObservabilityMiddleware:
                 ):
                     level = logging.DEBUG
                 logger.log(level, 'HTTP request completed', extra=fields)
+
+    def _request_fields_for(self, scope: Scope) -> dict[str, str]:
+        if self.request_fields is None:
+            return {}
+        try:
+            return self.request_fields(scope)
+        except Exception as exc:
+            # Optional diagnostic enrichment must preserve the request's outcome.
+            # Callback exception text can contain private request data.
+            logger.warning(
+                'HTTP request correlation callback failed',
+                extra={
+                    'event_name': 'http.request_fields.failed',
+                    'error_type': type(exc).__name__,
+                },
+            )
+            return {}
