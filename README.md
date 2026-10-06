@@ -5,6 +5,52 @@ Query saved records to find errors and slow work. Give the same evidence to a
 coding agent. This follows [OpenAI's harness-engineering approach](https://openai.com/index/harness-engineering/):
 make application behavior visible to people and agents.
 
+## Quick start
+
+```python
+import logging
+from decimal import Decimal
+from observability import (
+    Observability,
+    bind_observability_context,
+    observe_operation,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def invoice_total(invoice_id: str, items: list[tuple[str, Decimal]]) -> Decimal:
+    with observe_operation("invoice.total"):
+        total = sum((price for _, price in items), Decimal("0.00"))
+        logger.info(
+            "Invoice total calculated",
+            extra={
+                "event_name": "invoice.total_calculated",
+                "invoice_id": invoice_id,
+                "item_count": len(items),
+                "total": str(total),
+            },
+        )
+        return total
+
+
+runtime = Observability()
+runtime.start()
+try:
+    with bind_observability_context(request_id="req-123"):
+        total = invoice_total(
+            "inv-2048", [("hosting", Decimal("20.00")), ("support", Decimal("5.00"))]
+        )
+        print(f"Invoice total: ${total}")
+finally:
+    runtime.close()
+```
+
+This calculates a real invoice total, logs safe fields, and measures the operation.
+The request ID follows its log. See [Install](#install) to add the package, and the
+[full example](#shared-workflow-follow-one-request-through-three-files) for querying
+saved logs or instrumenting a web app.
+
 ## Install
 
 Use Python 3.12 or later. Clone this repository or add it as a submodule.
